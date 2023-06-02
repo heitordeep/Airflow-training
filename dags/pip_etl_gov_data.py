@@ -1,5 +1,6 @@
 from datetime import datetime
 from pathlib import Path
+from typing import Dict
 
 import pandas as pd
 import pendulum
@@ -10,39 +11,46 @@ from airflow.utils.task_group import TaskGroup
 from airflow.utils.trigger_rule import TriggerRule
 
 DAG_ID = "etl_data_gov"
-
+TIMEZONE = pendulum.now(tz="America/Sao_Paulo")
+PATH_DEFAULT = "/opt/airflow"
 DAG_DIR = Path(__file__).parent
-CONFIG_DIR = "/configs"
+CONFIG_DIR = f"{PATH_DEFAULT}/configs"
 
-SOURCES_FILE_NAME = "sources.yaml"
+SOURCES_FILE_NAME = "source.yaml"
 SOURCE_CONFIG_FILE_PATH = f"{CONFIG_DIR}/{SOURCES_FILE_NAME}"
-SOURCES = "sources"
+SOURCES = "PIPELINE"
 
 
 @task(task_id="extract_data")
-def extract_data(source, **kwargs):
-    print("Reading file...")
+def extract_data(parameters: Dict, **kwargs) -> None:
+    print(f"Reading file from {parameters['ENV']} env...")
+    path_file = f'{parameters["INPUT"]}/{parameters["FILE_NAME_INPUT"]}'
     df = pd.read_csv(
-        "/raw/gov.csv", sep=";", encoding="latin", names=["code", "name"]
+        path_file, sep=";", encoding="latin", names=["code", "name"]
     )
-    kwargs["ti"].xcom_push(key=f"{source}.raw_data", value=df.to_json())
     kwargs["ti"].xcom_push(
-        key=f"{source}.has_data", value=len(df.values.tolist())
+        key=f"{parameters['PIPELINE_NAME']}.raw_data", value=df.to_json()
+    )
+    kwargs["ti"].xcom_push(
+        key=f"{parameters['PIPELINE_NAME']}.has_data",
+        value=len(df.values.tolist()),
     )
 
 
 @task.branch(task_id="check_has_data")
-def check_has_data(source, **kwargs):
-    has_data = kwargs["ti"].xcom_pull(key=f"{source}.has_data")
-    print("Quantidade de dados {}".format(has_data))
+def check_has_data(pipeline_name: str, **kwargs) -> str:
+    has_data = kwargs["ti"].xcom_pull(key=f"{pipeline_name}.has_data")
+    print(f"Quantidade de dados {has_data}")
     if has_data > 0:
-        return f"{source}.transform_data"
-    return f"{source}.no_rows_found"
+        return f"{pipeline_name}.transform_data"
+    return f"{pipeline_name}.no_rows_found"
 
 
 @task(task_id="transform_data")
-def transform_data(source, **kwargs):
-    records = kwargs["ti"].xcom_pull(key=f"{source}.raw_data")
+def transform_data(parameters: Dict, **kwargs) -> None:
+    records = kwargs["ti"].xcom_pull(
+        key=f"{parameters['PIPELINE_NAME']}.raw_data"
+    )
     df = pd.read_json(records)
     print("Transforming data...")
     df["group_name"] = df["name"].apply(
@@ -52,22 +60,27 @@ def transform_data(source, **kwargs):
         count_name=("group_name", "count")
     )
     kwargs["ti"].xcom_push(
-        key=f"{source}.transformed_data", value=df.to_json()
+        key=f"{parameters['PIPELINE_NAME']}.transformed_data",
+        value=df.to_json(),
     )
 
 
 @task(task_id="load_data")
-def load_data(source, **kwargs):
-    records = kwargs["ti"].xcom_pull(key=f"{source}.transformed_data")
+def load_data(parameters: Dict, **kwargs) -> None:
+    records = kwargs["ti"].xcom_pull(
+        key=f"{parameters['PIPELINE_NAME']}.transformed_data"
+    )
     df = pd.read_json(records)
     now = datetime.now().strftime("%Y_%m_%d")
-    print(f"Creating file data_{source}_{now}.csv...")
-    df.to_csv(f"/trusted/dados_gov/data_{source}_{now}.csv", sep=";", index=False)
+    path_file = parameters["OUTPUT"]
+    file_name = f'{parameters["FILE_NAME_OUTPUT"].format(today=now)}'
+    print(f"Creating file {file_name}...")
+    df.to_csv(f"{path_file}/{file_name}", sep=";", index=False)
 
 
 @dag(
     dag_id=DAG_ID,
-    start_date=pendulum.now(tz="America/Sao_Paulo"),
+    start_date=TIMEZONE,
     schedule_interval=None,
 )
 def create_dag():
@@ -78,20 +91,28 @@ def create_dag():
 
     source_config_file_path = Path(SOURCE_CONFIG_FILE_PATH)
 
-    sources = []
+    sources = {}
 
     if source_config_file_path.exists():
         with open(source_config_file_path, "r") as config_file:
             sources_config = yaml.safe_load(config_file)
-        sources = sources_config.get(SOURCES, [])
+        sources = sources_config[SOURCES]["ENV"]
 
-    for source in sources:
-        with TaskGroup(group_id=source) as task_group:
+    for env, param in sources.items():
+        with TaskGroup(group_id=param["PIPELINE_NAME"]) as task_group:
+            parameters = {
+                "ENV": env,
+                "PIPELINE_NAME": param["PIPELINE_NAME"],
+                "INPUT": param["INPUT"],
+                "OUTPUT": param["OUTPUT"],
+                "FILE_NAME_INPUT": param["FILE_NAME_INPUT"],
+                "FILE_NAME_OUTPUT": param["FILE_NAME_OUTPUT"],
+            }
             no_rows_found = DummyOperator(task_id="no_rows_found")
-            has_data = check_has_data(source)
-            extract = extract_data(source)
-            transform = transform_data(source)
-            load = load_data(source)
+            extract = extract_data(parameters)
+            transform = transform_data(parameters)
+            load = load_data(parameters)
+            has_data = check_has_data(parameters["PIPELINE_NAME"])
 
             extract >> has_data >> transform >> load
             extract >> has_data >> no_rows_found

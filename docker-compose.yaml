@@ -62,10 +62,11 @@ x-airflow-common:
   volumes:
     - ./dags:/opt/airflow/dags
     - ./logs:/opt/airflow/logs
-    # - ./plugins:/opt/airflow/plugins
-    - ./raw:/raw
-    - ./trusted:/trusted
-    - ./configs:/configs
+    - ./dev/raw:/opt/airflow/dev/raw
+    - ./dev/trusted:/opt/airflow/dev/trusted
+    - ./prd/raw:/opt/airflow/prd/raw
+    - ./prd/trusted:/opt/airflow/prd/trusted
+    - ./configs:/opt/airflow/configs
   user: "${AIRFLOW_UID:-50000}:0"
   depends_on:
     &airflow-common-depends-on

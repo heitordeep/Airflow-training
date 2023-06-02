@@ -1,10 +1,14 @@
 PIPELINE:
   ENV:
     DEV:    
-      NAME: DADOS_DEV
-      INPUT: /raw
-      OUTPUT: /dev/trusted
+      PIPELINE_NAME: DADOS_DEV
+      INPUT: /opt/airflow/dev/raw
+      OUTPUT: /opt/airflow/dev/trusted
+      FILE_NAME_INPUT: gov.csv
+      FILE_NAME_OUTPUT: gov_dev_{today}.csv
     PRD:    
-      NAME: DADOS_PRD
-      INPUT: /raw
-      OUTPUT: /trusted
+      PIPELINE_NAME: DADOS_PRD
+      INPUT: /opt/airflow/prd/raw
+      OUTPUT: /opt/airflow/prd/trusted
+      FILE_NAME_INPUT: gov.csv
+      FILE_NAME_OUTPUT: gov_prd_{today}.csv
