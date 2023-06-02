@@ -48,4 +48,4 @@ volumes:
 
 
 # Pipeline result:
-![image](https://github.com/heitordeep/Airflow-Train/assets/17969551/56608719-909f-4d98-9536-2b07b5b1a0ad)
+![image](https://github.com/heitordeep/Airflow-training/assets/17969551/b5fbd936-8f54-4197-9535-26aff0c01aa7)
