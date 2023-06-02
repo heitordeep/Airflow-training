@@ -24,7 +24,7 @@ SOURCES = "PIPELINE"
 @task(task_id="extract_data")
 def extract_data(parameters: Dict, **kwargs) -> None:
     print(f"Reading file from {parameters['ENV']} env...")
-    path_file = f'{parameters["INPUT"]}/{parameters["FILE_NAME_INPUT"]}'
+    path_file = f'{parameters["INPUT_PATH"]}/{parameters["INPUT_FILE_NAME"]}'
     df = pd.read_csv(
         path_file, sep=";", encoding="latin", names=["code", "name"]
     )
@@ -72,9 +72,10 @@ def load_data(parameters: Dict, **kwargs) -> None:
     )
     df = pd.read_json(records)
     now = datetime.now().strftime("%Y_%m_%d")
-    path_file = parameters["OUTPUT"]
-    file_name = f'{parameters["FILE_NAME_OUTPUT"].format(today=now)}'
+    path_file = parameters["OUTPUT_PATH"]
+    file_name = f'{parameters["OUTPUT_FILE_NAME"].format(today=now)}'
     print(f"Creating file {file_name}...")
+    df['date'] = now
     df.to_csv(f"{path_file}/{file_name}", sep=";", index=False)
 
 
@@ -103,10 +104,10 @@ def create_dag():
             parameters = {
                 "ENV": env,
                 "PIPELINE_NAME": param["PIPELINE_NAME"],
-                "INPUT": param["INPUT"],
-                "OUTPUT": param["OUTPUT"],
-                "FILE_NAME_INPUT": param["FILE_NAME_INPUT"],
-                "FILE_NAME_OUTPUT": param["FILE_NAME_OUTPUT"],
+                "INPUT_PATH": param["INPUT_PATH"],
+                "OUTPUT_PATH": param["OUTPUT_PATH"],
+                "INPUT_FILE_NAME": param["INPUT_FILE_NAME"],
+                "OUTPUT_FILE_NAME": param["OUTPUT_FILE_NAME"],
             }
             no_rows_found = DummyOperator(task_id="no_rows_found")
             extract = extract_data(parameters)
