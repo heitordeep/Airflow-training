@@ -1,0 +1,10 @@
+PIPELINE:
+  ENV:
+    DEV:    
+      NAME: DADOS_DEV
+      INPUT: /raw
+      OUTPUT: /dev/trusted
+    PRD:    
+      NAME: DADOS_PRD
+      INPUT: /raw
+      OUTPUT: /trusted
