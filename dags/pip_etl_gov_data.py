@@ -75,7 +75,7 @@ def load_data(parameters: Dict, **kwargs) -> None:
     path_file = parameters["OUTPUT_PATH"]
     file_name = f'{parameters["OUTPUT_FILE_NAME"].format(today=now)}'
     print(f"Creating file {file_name}...")
-    df['date'] = now
+    df["date"] = now
     df.to_csv(f"{path_file}/{file_name}", sep=";", index=False)
 
 
