@@ -6,6 +6,11 @@ I used government data that can be found at the link: [dados.gov.br](https://dad
 It's possible to create a pipeline with **TaskGroup**, dividing it into two steps. I created a pipeline with two environments: dev and prod to use airflow's **taskGroup** method. 
 
 # Commands and airflow access:
+- Create directory:
+  - ```shell
+    $ mkdir -p ./dags ./logs ./dev/raw ./dev/trusted ./prd/raw ./prd/trusted ./configs
+    $ echo -e "AIRFLOW_UID=$(id -u)" > .env
+    ```
 - Container image:
   - ```shell
     $ docker compose up -d
