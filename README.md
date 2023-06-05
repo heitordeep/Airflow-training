@@ -3,7 +3,7 @@
 # Description:
 This project is only for study. The goal is to learn how to create a pipeline template in Yaml. <br>
 I used government data that can be found at the link: [dados.gov.br](https://dados.gov.br/dados/conjuntos-dados/cadastro-nacional-da-pessoa-juridica---cnpj)<br>
-There's possible to create a pipeline with **TaskGroup**, dividing it into two steps. I created a pipeline with two environments: dev and prod to use airflow's **taskGroup** method. 
+It's possible to create a pipeline with **TaskGroup**, dividing it into two steps. I created a pipeline with two environments: dev and prod to use airflow's **taskGroup** method. 
 
 # Commands and airflow access:
 - Container image:
